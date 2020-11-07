@@ -465,3 +465,27 @@ Context 标签⽤于配置⼀个Web应⽤，如下：
 2. 效果
 
    ![image-20201105235451744](https://gitee.com/xiyuximing/image/raw/master/image-20201105235451744.png)
+
+## 手写迷你版tomcat
+
+#### 1.0浏览器请求http://localhost:8080,返回一个固定的字符串到页面"Hello Minicat!"
+
+关键代码：
+
+``` java
+        ServerSocket serverSocket = new ServerSocket(port);
+        System.out.println("=====>>>Minicat start on port：" + port);
+        while (true) {
+            Socket socket = serverSocket.accept();
+            OutputStream outputStream = socket.getOutputStream();
+            String responseText = "Hello minCat !";
+            outputStream.write(HttpPotocolUtil.getHttpResponse200(responseText).getBytes());
+          	socket.close();
+        }
+```
+
+#### 2.0需求：封装Request和Response对象，返回html静态资源文件
+
+
+
+#### 3.0需求：可以请求动态资源（Servlet）
