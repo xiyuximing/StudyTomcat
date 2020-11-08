@@ -1,0 +1,4 @@
+docker run --name tomcat8081 -d -p 8081:8081 -v /home/tomcat8081/conf/server.xml:/usr/local/tomcat/conf/server.xml -v /home/tomcat8081/webapps:/usr/local/tomcat/webapps tomcat
+docker run --name tomcat8082 -d -p 8082:8082 -v /home/tomcat8082/conf/server.xml:/usr/local/tomcat/conf/server.xml -v /home/tomcat8082/webapps:/usr/local/tomcat/webapps tomcat
+docker run --name tomcat8083 -d -p 8083:8083 -v /home/tomcat8083/conf/server.xml:/usr/local/tomcat/conf/server.xml -v /home/tomcat8083/webapps:/usr/local/tomcat/webapps tomcat
+docker run --name myNginx -d -p 8085:80 -v /home/nginx/conf/nginx.conf:/etc/nginx/nginx.conf -v /home/nginx/log:/var/log/nginx -v /home/nginx/html:/usr/share/nginx/html nginx

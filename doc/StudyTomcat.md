@@ -489,3 +489,229 @@ Context 标签⽤于配置⼀个Web应⽤，如下：
 
 
 #### 3.0需求：可以请求动态资源（Servlet）
+## Tomcat 源码构建及核心流程源码剖析
+
+
+
+## Tomcat 类加载机制剖析
+
+### 1、JVM类加载机制
+
+| 类加载器                                     | 作⽤                                                         |
+| -------------------------------------------- | ------------------------------------------------------------ |
+| 引导启动类加载器BootstrapClassLoader         | c++编写，加载java核⼼库 java.*,⽐如rt.jar中的类，构造ExtClassLoader和AppClassLoader |
+| 扩展类加载器 ExtClassLoader                  | java编写，加载扩展库 JAVA_HOME/lib/ext⽬录下的jar中的类，如classpath中的jre ，javax.*或者java.ext.dir指定位置中的类 |
+| 系统类加载器SystemClassLoader/AppClassLoader | 默认的类加载器，搜索环境变量 classpath 中指明的路径          |
+| 自定义类加载器                               | 加载指定路径的 class ⽂件                                    |
+
+![image-20201108144003721](https://gitee.com/xiyuximing/image/raw/master/image-20201108144003721.png)
+
+#### 2、双亲委派机制
+
+![image-20201108145455741](https://gitee.com/xiyuximing/image/raw/master/image-20201108145455741.png)
+
+当某个类加载器需要加载某个.class⽂件时，它⾸先把这个任务委托给他的上级类加载器，递归这个操作，如果上级的类加载器没有加载，⾃⼰才会去加载这个类。
+
+- 如果⼀直到底层的类加载都没有加载到，那么就会抛出异常 ClassNotFoundException
+- 如果同样在 classpath 指定的⽬录中和⾃⼰⼯作⽬录中存放相同的class，会优先加载 classpath ⽬录中的⽂件
+
+**双亲委派机制的作⽤**
+
+- 防⽌重复加载同⼀个.class。通过委托去向上⾯问⼀问，加载过了，就不⽤再加载⼀遍。保证数据安全
+- 保证核⼼.class不能被篡改。通过委托⽅式，不会去篡改核⼼.class，即使篡改也不会去加载，即使加载也不会是同⼀个.class对象了。不同的加载器加载同⼀个.class也不是同⼀个.class对象。这样保证了class执⾏安全（如果⼦类加载器先加载，那么我们可以写⼀些与java.lang包中基础类同名
+  的类， 然后再定义⼀个⼦类加载器，这样整个应⽤使⽤的基础类就都变成我们⾃⼰定义的类了。）
+  Object类 -----> ⾃定义类加载器（会出现问题的，那么真正的Object类就可能被篡改了）
+
+## Tomcat对HTTPS的支持
+
+### https简介
+
+![image-20201108153555173](https://gitee.com/xiyuximing/image/raw/master/image-20201108153555173.png)
+
+Http超⽂本传输协议，明⽂传输 ，传输不安全，https在传输数据的时候会对数据进⾏加密
+ssl协议
+TLS(transport layer security)协议
+
+**HTTPS和HTTP的主要区别**
+
+- HTTPS协议使⽤时需要到电⼦商务认证授权机构（CA）申请SSL证书
+- tomcat中HTTP默认使⽤8080端⼝，HTTPS默认使⽤8443端⼝
+- HTTPS则是具有SSL加密的安全性传输协议，对数据的传输进⾏加密，效果上相当于HTTP的升级版
+- HTTP的连接是⽆状态的，不安全的；HTTPS协议是由SSL+HTTP协议构建的可进⾏加密传输、身份认证的⽹络协议，⽐HTTP协议安全
+
+### HTTPS⼯作原理
+
+![image-20201108153730837](https://gitee.com/xiyuximing/image/raw/master/image-20201108153730837.png)
+
+### Tomcat 对 HTTPS 的⽀持
+
+1. 使⽤ JDK 中的 keytool ⼯具⽣成免费的秘钥库⽂件(证书)。
+
+   ``` shell
+   keytool -genkey -alias test -keyalg RSA -keystore test.keystore
+   ```
+
+   ![image-20201108155935741](https://gitee.com/xiyuximing/image/raw/master/image-20201108155935741.png)
+
+   2. 配置service.xml中的Connector标签
+
+      ``` xml
+          <Connector port="8443" protocol="org.apache.coyote.http11.Http11NioProtocol"
+                     maxThreads="150" SSLEnabled="true">
+              <SSLHostConfig>
+                  <Certificate certificateKeystoreFile="conf/test.keystore"
+      						 certificateKeystorePassword="cy123456"
+                               type="RSA" />
+              </SSLHostConfig>
+          </Connector>
+      ```
+
+      效果
+
+      ![image-20201108160406732](https://gitee.com/xiyuximing/image/raw/master/image-20201108160406732.png)
+
+## Tomcat性能优化
+
+### 性能指标
+
+- 响应时间
+- 吞吐量：系统在给定时间内能够⽀持的事务数量，单位为TPS（事务数/秒）
+
+### 优化方式
+
+- 从JVM虚拟机优化
+- Tomcat本身的优化
+
+### JVM虚拟机优化
+
+**主要通过内存分配及垃圾回收策略优化：**
+
+- 内存分配优化影响的是服务器的运行效率和吞吐量
+- 垃圾回收机制会不同程度的导致运行程序终端
+
+**JVM主要参数：**
+
+| 参数                 | 参数作用                                          | 优化建议                |
+| -------------------- | ------------------------------------------------- | ----------------------- |
+| -server              | 启动Server，以服务端模式运行                      | 服务端模式建议开启      |
+| -Xms                 | 最⼩堆内存                                        | 建议与-Xmx设置相同      |
+| -Xmx                 | 最⼤堆内存                                        | 建议设置为可⽤内存的80% |
+| -XX:MetaspaceSize    | 元空间初始值                                      |                         |
+| -XX:MaxMetaspaceSize | 元空间最⼤内存                                    | 默认⽆限                |
+| -XX:NewRatio         | 年轻代和⽼年代⼤⼩⽐值，取值为整数，默认为2       | 不需要修改              |
+| -XX:SurvivorRatio    | Eden区与Survivor区⼤⼩的⽐值，取值为整数，默认为8 | 不需要修改              |
+
+![image-20201108171537114](https://gitee.com/xiyuximing/image/raw/master/image-20201108171537114.png)
+
+参数调整示例：
+
+在conf/catalina.bat加入相应参数配置
+
+``` shell
+JAVA_OPTS="-server -Xms2048m -Xmx2048m -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=512m"
+```
+
+windows在
+
+``` shell
+rem Guess CATALINA_HOME if not defined
+set "CURRENT_DIR=%cd%"
+```
+
+后加入配置：
+
+``` shell
+set JAVA_OPTS=-server -Xms2048m -Xmx2048m -XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=512m
+```
+
+![image-20201108173917979](https://gitee.com/xiyuximing/image/raw/master/image-20201108173917979.png)
+
+效果查看
+
+``` shell
+jmap -heap 16972
+```
+
+![image-20201108173802874](https://gitee.com/xiyuximing/image/raw/master/image-20201108173802874.png)
+
+### 垃圾回收（GC）策略
+
+垃圾回收性能指标:
+
+- 吞吐量：⼯作时间（排除GC时间）占总时间的百分⽐， ⼯作时间并不仅是程序运⾏的时间，还包含内存分配时间。
+- 暂停时间：由垃圾回收导致的应⽤程序停⽌响应次数/时间。
+
+**垃圾处理器:**
+
+- 串⾏收集器（Serial Collector）
+
+  单线程执⾏所有的垃圾回收⼯作， 适⽤于单核CPU服务器
+  ⼯作进程-----|（单线程）垃圾回收线程进⾏垃圾收集|---⼯作进程继续
+
+- 并⾏收集器（Parallel Collector）
+
+  ⼯作进程-----|（多线程）垃圾回收线程进⾏垃圾收集|---⼯作进程继续
+  ⼜称为吞吐量收集器（关注吞吐量）， 以并⾏的⽅式执⾏年轻代的垃圾回收， 该⽅式可以显著降低垃圾回收的开销(指多条垃圾收集线程并⾏⼯作，但此时⽤户线程仍然处于等待状态)。适⽤于多处理器或多线程硬件上运⾏的数据量较⼤的应⽤
+
+- 并发收集器（Concurrent Collector）
+
+  以并发的⽅式执⾏⼤部分垃圾回收⼯作，以缩短垃圾回收的暂停时间。适⽤于那些响应时间优先于吞吐量的应⽤， 因为该收集器虽然最⼩化了暂停时间(指⽤户线程与垃圾收集线程同时执⾏,但不⼀定是并⾏的，可能会交替进⾏)， 但是会降低应⽤程序的性能
+
+- CMS收集器（Concurrent Mark Sweep Collector）
+
+  并发标记清除收集器， 适⽤于那些更愿意缩短垃圾回收暂停时间并且负担的起与垃圾回收共享处理器资源的应⽤
+
+- G1收集器（Garbage-First Garbage Collector）
+
+  适⽤于⼤容量内存的多核服务器， 可以在满⾜垃圾回收暂停时间⽬标的同时， 以最⼤可能性实现⾼吞吐量(JDK1.7之后)
+
+**垃圾处理器参数：**
+
+| 参数                           | 描述                                                         |
+| ------------------------------ | ------------------------------------------------------------ |
+| -XX:+UseSerialGC               | 启⽤串⾏收集器                                               |
+| -XX:+UseParallelGC             | 启⽤并⾏垃圾收集器，配置了该选项，那么 -XX:+UseParallelOldGC默认启⽤ |
+| -XX:+UseParNewGC               | 年轻代采⽤并⾏收集器，如果设置了 -XX:+UseConcMarkSweepGC选项，⾃动启⽤ |
+| -XX:ParallelGCThreads          | 年轻代及⽼年代垃圾回收使⽤的线程数。默认值依赖于JVM使⽤的CPU个数 |
+| -XX:+UseConcMarkSweepGC（CMS） | 对于⽼年代，启⽤CMS垃圾收集器。 当并⾏收集器⽆法满⾜应⽤的延迟需求是，推荐使⽤CMS或G1收集器。启⽤该选项后， -XX:+UseParNewGC⾃动启⽤。 |
+| -XX:+UseG1GC                   | 启⽤G1收集器。 G1是服务器类型的收集器， ⽤于多核、⼤内存的机器。它在保持⾼吞吐量的情况下，⾼概率满⾜GC暂停时间的⽬标。 |
+
+配置方法也是在conf/catalina.bat加入相应参数配置
+
+``` shell
+JAVA_OPTS="-XX:+UseConcMarkSweepGC"
+```
+
+### Tomcat自身优化
+
+- 使用tomcat线程池
+
+  ![image-20201108174542738](https://gitee.com/xiyuximing/image/raw/master/image-20201108174542738.png)
+
+- 调整tomcat的连接器配置
+
+  调整tomcat/conf/server.xml 中关于链接器的配置可以提升应⽤服务器的性能。
+
+  | 参数           | 说明                                                         |
+  | -------------- | ------------------------------------------------------------ |
+  | maxConnections | 最⼤连接数，当到达该值后，服务器接收但不会处理更多的请求， 额外的请求将会阻塞直到连接数低于maxConnections 。可通过ulimit -a 查看服务器限制。对于CPU要求更⾼(计算密集型)时，建议不要配置过⼤ ; 对于CPU要求不是特别⾼时，建议配置在2000左右(受服务器性能影响)。 当然这个需要服务器硬件的⽀持 |
+  | maxThreads     | 最⼤线程数,需要根据服务器的硬件情况，进⾏⼀个合理的设置      |
+  | acceptCount    | 最⼤排队等待数,当服务器接收的请求数量到达maxConnections ，此时Tomcat会将后⾯的请求，存放在任务队列中进⾏排序， acceptCount指的就是任务队列中排队等待的请求数 。 ⼀台Tomcat的最⼤的请求处理数量，是maxConnections+acceptCount |
+
+  
+
+- 调整tomcat的连接器
+
+  ![image-20201108174605241](C:\Users\Yang\AppData\Roaming\Typora\typora-user-images\image-20201108174605241.png)
+
+- 调整 IO 模式
+
+  Tomcat8之前的版本默认使⽤BIO（阻塞式IO），对于每⼀个请求都要创建⼀个线程来处理，不适合⾼并发；Tomcat8以后的版本默认使⽤NIO模式（⾮阻塞式IO）
+
+  ![image-20201108174616847](https://gitee.com/xiyuximing/image/raw/master/image-20201108174616847.png)
+
+  当Tomcat并发性能有较⾼要求或者出现瓶颈时，我们可以尝试使⽤APR模式，APR（Apache PortableRuntime）是从操作系统级别解决异步IO问题，使⽤时需要在操作系统上安装APR和Native（因为APR原理是使⽤使⽤JNI技术调⽤操作系统底层的IO接⼝）
+
+- 动静分离
+
+  可以使⽤Nginx+Tomcat相结合的部署⽅案，Nginx负责静态资源访问，Tomcat负责Jsp等动态资源访问处理（因为Tomcat不擅⻓处理静态资源）。
