@@ -1,8 +1,11 @@
-package com.cy.mincat.service;
+package com.cy.mincat.service.servlet;
+
+import com.cy.mincat.service.entity.Request;
+import com.cy.mincat.service.entity.Response;
 
 public abstract class HttpServlet implements Servlet {
 
-    public abstract void doGet(Request request,Response response);
+    public abstract void doGet(Request request, Response response);
 
     public abstract void doPost(Request request,Response response);
 

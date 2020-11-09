@@ -506,7 +506,7 @@ Context 标签⽤于配置⼀个Web应⽤，如下：
 
 ![image-20201108144003721](https://gitee.com/xiyuximing/image/raw/master/image-20201108144003721.png)
 
-#### 2、双亲委派机制
+### 2、双亲委派机制
 
 ![image-20201108145455741](https://gitee.com/xiyuximing/image/raw/master/image-20201108145455741.png)
 

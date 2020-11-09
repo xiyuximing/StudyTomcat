@@ -2,7 +2,7 @@
 <web-app>
     <servlet>
         <servlet-name>httpServlet</servlet-name>
-        <servlet-class>com.cy.mincat.service.MyServlet</servlet-class>
+        <servlet-class>com.cy.mincat.service.servlet.MyServlet</servlet-class>
     </servlet>
 
 

@@ -1,4 +1,6 @@
-package com.cy.mincat.service;
+package com.cy.mincat.service.entity;
+
+import com.cy.mincat.service.servlet.Servlet;
 
 import java.net.Socket;
 import java.util.Map;

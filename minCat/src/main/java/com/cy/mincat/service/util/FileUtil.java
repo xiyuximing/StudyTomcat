@@ -1,4 +1,4 @@
-package com.cy.mincat.service;
+package com.cy.mincat.service.util;
 
 import java.io.File;
 import java.io.IOException;

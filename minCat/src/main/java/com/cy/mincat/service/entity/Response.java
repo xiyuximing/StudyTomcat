@@ -1,4 +1,7 @@
-package com.cy.mincat.service;
+package com.cy.mincat.service.entity;
+
+import com.cy.mincat.service.util.FileUtil;
+import com.cy.mincat.service.util.HttpPotocolUtil;
 
 import java.io.File;
 import java.io.FileInputStream;

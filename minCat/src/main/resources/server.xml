@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<server>
+    <service>
+        <Connector port="8081">
+        </Connector>
+        <Engine>
+            <Host name="localhost"  appBase="webapps">
+                <Context docBase="/Users/yingdian/web_demo" path="/web3"></Context>
+            </Host>
+        </Engine>
+    </service>
+</server>

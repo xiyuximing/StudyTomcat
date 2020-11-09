@@ -1,4 +1,8 @@
-package com.cy.mincat.service;
+package com.cy.mincat.service.servlet;
+
+import com.cy.mincat.service.entity.Request;
+import com.cy.mincat.service.entity.Response;
+import com.cy.mincat.service.util.HttpPotocolUtil;
 
 import java.io.IOException;
 
